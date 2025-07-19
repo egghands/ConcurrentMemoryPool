@@ -1,8 +1,5 @@
 #pragma once
-#include <iostream>
-#include <vector>
-using std::cout;
-using std::endl;
+#include "Common.h"
 
 template<class T>
 class ObjectPool
