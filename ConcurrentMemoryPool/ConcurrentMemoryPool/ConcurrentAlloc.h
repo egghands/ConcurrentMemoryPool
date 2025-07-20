@@ -10,6 +10,7 @@ static void* ConcurrentAlloc(size_t size)
 	return pTLSThreadCache->Allocate(size);
 }
 
-static void ConcurrentFree(void* ptr) {
-	;
+static void ConcurrentFree(void* ptr,size_t size) {
+	assert(ptr);
+	pTLSThreadCache->Deallocate(ptr, size);
 }
