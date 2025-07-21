@@ -3,6 +3,8 @@ PageCache PageCache::_sInst;
 
 Span* PageCache::NewSpan(size_t k)
 {
+	assert(k > 0 && k < PAGE_NUM);
+   	_pageMtx.lock();
 	for (size_t i = k; i < PAGE_NUM; i++) {
 		if (!_spanLists[i].Empty()) {
 			Span* aSpan = _spanLists[i].PopFront();
@@ -21,4 +23,8 @@ Span* PageCache::NewSpan(size_t k)
 	void* ptr = SystemAlloc(PAGE_NUM);
 	bigSpan->_pageid = (PAGE_ID)ptr >> PAGE_SHIFT;
 	bigSpan->_n = PAGE_NUM - 1;  
+
+	_spanLists[bigSpan->_n].PushFront(bigSpan);
+	_pageMtx.unlock();
+	return NewSpan(k);
 }

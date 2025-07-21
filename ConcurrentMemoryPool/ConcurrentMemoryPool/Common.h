@@ -4,9 +4,16 @@
 #include <mutex>
 #include <assert.h>
 #include <thread>
-#include <memoryapi.h>
+#include <algorithm>
+
 using std::cout;
 using std::endl;
+#ifdef _WIN32
+	#include <windows.h>
+	#include <memoryapi.h>
+#else
+//...
+#endif // _WIN32
 static const size_t MAX_BYTES = 256 * 1024;
 static const size_t FREElIST_NUM = 208;
 static const size_t PAGE_NUM = 129;
@@ -18,6 +25,9 @@ static const size_t PAGE_SHIFT = 13;
 #else
 	//...linux
 #endif
+
+
+
 
 // 直接去堆上按页申请空间
 inline static void* SystemAlloc(size_t kpage)
@@ -52,7 +62,7 @@ public:
 	void PushRange(void* start, void* end)
 	{
 		NextObj(end) = _freeList;
-		NextObj(_freeList) = start;
+		_freeList = start;
 	}
 
 	void* Pop()//头删

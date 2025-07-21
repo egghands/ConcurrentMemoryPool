@@ -13,8 +13,13 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 		else
 			it = it->_next;
 	}
+	//吧central cache的桶锁解除掉，其他线程可以释放内存对象
+	list._mtx.unlock(); 
 	//到这里，没有空闲的span
+	PageCache::GetInstance()->_pageMtx.lock();
 	Span* span = PageCache::GetInstance()->NewSpan(SizeClass::NumMovePage(byte_size));
+	PageCache::GetInstance()->_pageMtx.unlock();
+
 	// 计算span的大块内存的起始地址和大块内存的大小（字节数）
 	char* start = (char*)(span->_pageid << PAGE_SHIFT);
 	size_t bytes = span->_n << PAGE_SHIFT;
@@ -29,6 +34,7 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 		tail = start;
 		start += byte_size;
 	}
+	list._mtx.lock();
 	list.PushFront(span);
 	return span;
 }
@@ -58,7 +64,7 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	}
 	span->_freeList = NextObj(end);
 	NextObj(end) = nullptr;
-
+	span->_useCount += actualNum;
 	_spanLists[index]._mtx.unlock();
 
 	return actualNum;

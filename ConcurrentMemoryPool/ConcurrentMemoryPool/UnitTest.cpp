@@ -94,12 +94,22 @@ void TestObjectPool()
 	cout << "object pool cost time:" << end2 - begin2 << endl;
 }
 
+void TestConcurrentAlloc()
+{
+	void* p1 = ConcurrentAlloc(6);
+	void* p2 = ConcurrentAlloc(8);
+	void* p3 = ConcurrentAlloc(1);
+	void* p4 = ConcurrentAlloc(60);
+	void* p5 = ConcurrentAlloc(4);
+	void* p6 = ConcurrentAlloc(5);
+}
+
 
 int main()
 {
 	//TestObjectPool();
-	TLSTest();
-
+	//TLSTest();
+	TestConcurrentAlloc();
 	return 0;
 }
 //int main()
