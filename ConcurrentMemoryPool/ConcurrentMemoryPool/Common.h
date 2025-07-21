@@ -1,12 +1,39 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <mutex>
 #include <assert.h>
 #include <thread>
+#include <memoryapi.h>
 using std::cout;
 using std::endl;
 static const size_t MAX_BYTES = 256 * 1024;
 static const size_t FREElIST_NUM = 208;
+static const size_t PAGE_NUM = 129;
+static const size_t PAGE_SHIFT = 13;
+#ifdef _WIN64
+	typedef unsigned long long  PAGE_ID;
+#elif _WIN32
+	typedef size_t PAGE_ID;
+#else
+	//...linux
+#endif
+
+// 直接去堆上按页申请空间
+inline static void* SystemAlloc(size_t kpage)
+{
+#ifdef _WIN32
+	void* ptr = VirtualAlloc(0, kpage << 13, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+#else
+	// linux下brk mmap等
+#endif
+
+	if (ptr == nullptr)
+		throw std::bad_alloc();
+
+	return ptr;
+}
+
 
 static void*& NextObj(void* obj)
 {
@@ -22,6 +49,12 @@ public:
 		NextObj(obj) = _freeList;
 		_freeList = obj;
 	}
+	void PushRange(void* start, void* end)
+	{
+		NextObj(end) = _freeList;
+		NextObj(_freeList) = start;
+	}
+
 	void* Pop()//头删
 	{
 		assert(_freeList);
@@ -33,7 +66,9 @@ public:
 	{
 		return _freeList == nullptr;
 	}
+	size_t& MaxSize() { return _maxSize; }
 private:
+	size_t _maxSize = 1;
 	void* _freeList = nullptr;
 };
 
@@ -95,5 +130,89 @@ public:
 
 		return -1;
 	}
+	// 一次thread cache从central cache获取多少个
+	static size_t NumMoveSize(size_t size)
+	{
+		assert(size > 0);
 
+		// [2, 512]，一次批量移动多少个对象的(慢启动)上限值
+		// 小对象一次批量上限高
+		// 小对象一次批量上限低
+		int num = MAX_BYTES / size;
+		if (num < 2)
+			num = 2;
+
+		if (num > 512)
+			num = 512;
+
+		return num;
+	}
+	//一次central cache中page cache获得多少个
+	static size_t NumMovePage(size_t size)
+	{
+		size_t num = NumMoveSize(size);
+		size_t npage = num * size;
+
+		npage >>= PAGE_SHIFT;
+		if (npage == 0)
+			npage = 1;
+
+		return npage;
+	}
+};
+
+/*-------------SPAN-----------------*/
+struct Span
+{
+	PAGE_ID _pageid = 0;        //大块内存起始页的页号
+	size_t _n = 0;              //页的数量
+	Span* _next = nullptr;		//双向链表的结构
+	Span* _prev = nullptr;      					  
+	size_t _useCount = 0;		//切好小块内存，被分配给thread cache的计数
+	void* _freeList = nullptr;	//切好的小块内存的自由链表
+};
+
+class SpanList
+{
+public:
+	SpanList()
+	{
+		_head = new Span;
+		_head->_next = _head;
+		_head->_prev = _head;
+	}
+	void Insert(Span* pos, Span* newSpan) 
+	{
+		assert(pos);
+		assert(newSpan);
+		newSpan->_prev = pos;
+		newSpan->_next = pos->_next;
+		pos->_next->_prev = newSpan;
+		pos->_next = newSpan;
+	}
+	void Erase(Span* pos)
+	{
+		assert(pos);
+		assert(pos != _head);
+
+		Span* next = pos->_next;
+		next->_prev = pos->_prev;
+		pos->_prev->_next = next;
+
+
+	}
+	void PushFront(Span* newSpan) { Insert(_head->_next, newSpan); }
+	Span* PopFront() 
+	{
+		Span* span = _head->_next;
+		Erase(Begin());
+		return span;
+	}
+	Span* Begin() { return _head->_next; }
+	Span* End() { return _head; }
+	bool Empty() { return _head->_next == _head; }
+	std::mutex _mtx;//桶锁
+
+private:
+	Span* _head;
 };
