@@ -69,3 +69,8 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 
 	return actualNum;
 }
+
+void CentralCache::ReleaseListToSpans(void* start, size_t size)
+{
+	;
+}

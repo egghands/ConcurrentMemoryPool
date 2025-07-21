@@ -19,10 +19,19 @@ void ThreadCache::Deallocate(void* ptr, size_t size)
 	assert(ptr && size <MAX_BYTES);
 	size_t index = SizeClass::Index(size);
 	_freeLists[index].Push(ptr);
-
-	//ToDO...
+	//当链表的长度大于一次申请时开始回收
+	if (_freeLists[index].Size() >= _freeLists[index].MaxSize())
+		ListTooLong(_freeLists[index], size);
 }
 
+
+void ThreadCache::ListTooLong(FreeList& list, size_t size)
+{
+	void* start = nullptr;
+	void* end = nullptr;
+	list.PopRange(start, end, list.MaxSize());
+	CentralCache::GetInstance()->ReleaseListToSpans(start, size);
+}
 void* ThreadCache::FetchFromCentralCache(size_t index, size_t size)
 {
 	// 慢开始反馈调节算法
@@ -48,7 +57,7 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t size)
 	}
 	else
 	{
-		_freeLists[index].PushRange(NextObj(start), end);
+		_freeLists[index].PushRange(NextObj(start), end, actualNum - 1);
 		return start;
 	}
 }
