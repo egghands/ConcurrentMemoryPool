@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include <algorithm>
 
 #include <time.h>
@@ -10,14 +11,15 @@
 
 #include <thread>
 #include <mutex>
+#include <atomic>
 
 using std::cout;
 using std::endl;
 
 #ifdef _WIN32
-#include <windows.h>
+	#include <windows.h>
 #else
-// ...
+	// ...
 #endif
 
 static const size_t MAX_BYTES = 256 * 1024;
@@ -26,11 +28,11 @@ static const size_t NPAGES = 129;
 static const size_t PAGE_SHIFT = 13;
 
 #ifdef _WIN64
-typedef unsigned long long PAGE_ID;
+	typedef unsigned long long PAGE_ID;
 #elif _WIN32
-typedef size_t PAGE_ID;
+	typedef size_t PAGE_ID;
 #else
-// linux
+	// linux
 #endif
 
 // 直接去堆上按页申请空间
@@ -46,6 +48,16 @@ inline static void* SystemAlloc(size_t kpage)
 		throw std::bad_alloc();
 
 	return ptr;
+}
+
+
+inline static void SystemFree(void* ptr)
+{
+#ifdef _WIN32
+	VirtualFree(ptr, 0, MEM_RELEASE);
+#else
+	// sbrk unmmap等
+#endif
 }
 
 static void*& NextObj(void* obj)
@@ -74,6 +86,20 @@ public:
 	{
 		NextObj(end) = _freeList;
 		_freeList = start;
+
+		// 测试验证+条件断点
+		/*int i = 0;
+		void* cur = start;
+		while (cur)
+		{
+			cur = NextObj(cur);
+			++i;
+		}
+
+		if (n != i)
+		{
+			int x = 0;
+		}*/
 
 		_size += n;
 	}
@@ -168,22 +194,21 @@ public:
 		{
 			return _RoundUp(size, 16);
 		}
-		else if (size <= 8 * 1024)
+		else if (size <= 8*1024)
 		{
 			return _RoundUp(size, 128);
 		}
-		else if (size <= 64 * 1024)
+		else if (size <= 64*1024)
 		{
 			return _RoundUp(size, 1024);
 		}
 		else if (size <= 256 * 1024)
 		{
-			return _RoundUp(size, 8 * 1024);
+			return _RoundUp(size, 8*1024);
 		}
 		else
 		{
-			assert(false);
-			return -1;
+			return _RoundUp(size, 1<<PAGE_SHIFT);
 		}
 	}
 
@@ -203,7 +228,7 @@ public:
 	// 2      9
 	// ...
 	// 8      15
-
+	
 	// 9 + 7 16
 	// 10
 	// ...
@@ -220,22 +245,22 @@ public:
 
 		// 每个区间有多少个链
 		static int group_array[4] = { 16, 56, 56, 56 };
-		if (bytes <= 128) {
+		if (bytes <= 128){
 			return _Index(bytes, 3);
 		}
-		else if (bytes <= 1024) {
+		else if (bytes <= 1024){
 			return _Index(bytes - 128, 4) + group_array[0];
 		}
-		else if (bytes <= 8 * 1024) {
+		else if (bytes <= 8 * 1024){
 			return _Index(bytes - 1024, 7) + group_array[1] + group_array[0];
 		}
-		else if (bytes <= 64 * 1024) {
+		else if (bytes <= 64 * 1024){
 			return _Index(bytes - 8 * 1024, 10) + group_array[2] + group_array[1] + group_array[0];
 		}
-		else if (bytes <= 256 * 1024) {
+		else if (bytes <= 256 * 1024){
 			return _Index(bytes - 64 * 1024, 13) + group_array[3] + group_array[2] + group_array[1] + group_array[0];
 		}
-		else {
+		else{
 			assert(false);
 		}
 
@@ -267,7 +292,7 @@ public:
 	static size_t NumMovePage(size_t size)
 	{
 		size_t num = NumMoveSize(size);
-		size_t npage = num * size;
+		size_t npage = num*size;
 
 		npage >>= PAGE_SHIFT;
 		if (npage == 0)
@@ -286,6 +311,7 @@ struct Span
 	Span* _next = nullptr;	// 双向链表的结构
 	Span* _prev = nullptr;
 
+	size_t _objSize = 0;  // 切好的小对象的大小
 	size_t _useCount = 0; // 切好小块内存，被分配给thread cache的计数
 	void* _freeList = nullptr;  // 切好的小块内存的自由链表
 
@@ -347,6 +373,13 @@ public:
 	{
 		assert(pos);
 		assert(pos != _head);
+
+		// 1、条件断点
+		// 2、查看栈帧
+		/*if (pos == _head)
+		{
+		int x = 0;
+		}*/
 
 		Span* prev = pos->_prev;
 		Span* next = pos->_next;

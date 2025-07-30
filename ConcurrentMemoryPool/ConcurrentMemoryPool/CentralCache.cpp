@@ -27,6 +27,7 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size)
 	PageCache::GetInstance()->_pageMtx.lock();
 	Span* span = PageCache::GetInstance()->NewSpan(SizeClass::NumMovePage(size));
 	span->_isUse = true;
+	span->_objSize = size;
 	PageCache::GetInstance()->_pageMtx.unlock();
 
 	// 对获取span进行切分，不需要加锁，因为这会其他线程访问不到这个span
@@ -49,6 +50,23 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size)
 		tail = NextObj(tail); // tail = start;
 		start += size;
 	}
+
+	NextObj(tail) = nullptr;
+
+	// 1、条件断点
+	// 2、疑似死循环，可以中断程序，程序会在正在运行的地方停下来
+	//int j = 0;
+	//void* cur = span->_freeList;
+	//while (cur)
+	//{
+	//	cur = NextObj(cur);
+	//	++j;
+	//}
+
+	//if (j != (bytes / size))
+	//{
+	//	int x = 0;
+	//}
 
 	// 切好span以后，需要把span挂到桶里面去的时候，再加锁
 	list._mtx.lock();
@@ -73,7 +91,7 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	end = start;
 	size_t i = 0;
 	size_t actualNum = 1;
-	while (i < batchNum - 1 && NextObj(end) != nullptr)
+	while ( i < batchNum - 1 && NextObj(end) != nullptr)
 	{
 		end = NextObj(end);
 		++i;
@@ -82,6 +100,20 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	span->_freeList = NextObj(end);
 	NextObj(end) = nullptr;
 	span->_useCount += actualNum;
+
+	//// 条件断点
+	int j = 0;
+	void* cur = start;
+	while (cur)
+	{
+		cur = NextObj(cur);
+		++j;
+	}
+
+	if (j != actualNum)
+	{
+		int x = 0;
+	}
 
 	_spanLists[index]._mtx.unlock();
 

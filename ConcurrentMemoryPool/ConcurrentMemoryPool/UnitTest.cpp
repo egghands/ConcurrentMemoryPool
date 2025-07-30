@@ -1,4 +1,4 @@
-﻿#include "ObjectPool.h"
+#include "ObjectPool.h"
 #include "ConcurrentAlloc.h"
 
 void Alloc1()
@@ -43,14 +43,17 @@ void TestConcurrentAlloc1()
 	cout << p3 << endl;
 	cout << p4 << endl;
 	cout << p5 << endl;
+	cout << p6 << endl;
+	cout << p7 << endl;
 
-	ConcurrentFree(p1, 6);
-	ConcurrentFree(p2, 8);
-	ConcurrentFree(p3, 1);
-	ConcurrentFree(p4, 7);
-	ConcurrentFree(p5, 8);
-	ConcurrentFree(p6, 8);
-	ConcurrentFree(p7, 8);
+
+	ConcurrentFree(p1);
+	ConcurrentFree(p2);
+	ConcurrentFree(p3);
+	ConcurrentFree(p4);
+	ConcurrentFree(p5);
+	ConcurrentFree(p6);
+	ConcurrentFree(p7);
 }
 
 void TestConcurrentAlloc2()
@@ -71,9 +74,9 @@ void TestAddressShift()
 	PAGE_ID id2 = 2001;
 	char* p1 = (char*)(id1 << PAGE_SHIFT);
 	char* p2 = (char*)(id2 << PAGE_SHIFT);
-	while (p1 < p2)
+	while(p1 < p2)
 	{
-		cout << (void*)p1 << ":" << ((PAGE_ID)p1 >> PAGE_SHIFT) << endl;
+		cout << (void*)p1 <<":"<< ((PAGE_ID)p1 >> PAGE_SHIFT) << endl;
 		p1 += 8;
 	}
 }
@@ -89,7 +92,7 @@ void MultiThreadAlloc1()
 
 	for (auto e : v)
 	{
-		ConcurrentFree(e, 6);
+		ConcurrentFree(e);
 	}
 }
 
@@ -104,7 +107,7 @@ void MultiThreadAlloc2()
 
 	for (auto e : v)
 	{
-		ConcurrentFree(e, 16);
+		ConcurrentFree(e);
 	}
 }
 
@@ -117,15 +120,26 @@ void TestMultiThread()
 	t2.join();
 }
 
-int main()
+void BigAlloc()
 {
-	//TestObjectPool();
-	//TLSTest();
+	void* p1 = ConcurrentAlloc(257 * 1024);
+	ConcurrentFree(p1);
 
-	//TestConcurrentAlloc1();
-	//TestAddressShift();
-
-	TestMultiThread();
-
-	return 0;
+	void* p2 = ConcurrentAlloc(129 * 8 * 1024);
+	ConcurrentFree(p2);
 }
+
+//int main()
+//{
+//	//TestObjectPool();
+//	//TLSTest();
+//
+//	TestConcurrentAlloc1();
+//	//TestAddressShift();
+//
+//	//TestMultiThread();
+//
+//	BigAlloc();
+//
+//	return 0;
+//}

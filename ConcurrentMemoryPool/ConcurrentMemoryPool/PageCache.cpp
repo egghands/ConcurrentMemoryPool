@@ -5,21 +5,44 @@ PageCache PageCache::_sInst;
 // 获取一个K页的span
 Span* PageCache::NewSpan(size_t k)
 {
-	assert(k > 0 && k < NPAGES);
+	assert(k > 0);
+
+	// 大于128 page的直接向堆申请
+	if (k > NPAGES-1)
+	{
+		void* ptr = SystemAlloc(k);
+		//Span* span = new Span;
+		Span* span = _spanPool.New();
+
+		span->_pageId = (PAGE_ID)ptr >> PAGE_SHIFT;
+		span->_n = k;
+
+		_idSpanMap[span->_pageId] = span;
+		return span;
+	}
 
 	// 先检查第k个桶里面有没有span
 	if (!_spanLists[k].Empty())
 	{
-		return _spanLists->PopFront();
+		Span* kSpan = _spanLists[k].PopFront();
+
+		// 建立id和span的映射，方便central cache回收小块内存时，查找对应的span
+		for (PAGE_ID i = 0; i < kSpan->_n; ++i)
+		{
+			_idSpanMap[kSpan->_pageId + i] = kSpan;
+		}
+
+		return kSpan;
 	}
 
 	// 检查一下后面的桶里面有没有span，如果有可以把他它进行切分
-	for (size_t i = k + 1; i < NPAGES; ++i)
+	for (size_t i = k+1; i < NPAGES; ++i)
 	{
 		if (!_spanLists[i].Empty())
 		{
 			Span* nSpan = _spanLists[i].PopFront();
-			Span* kSpan = new Span;
+			//Span* kSpan = new Span;
+			Span* kSpan = _spanPool.New();
 
 			// 在nSpan的头部切一个k页下来
 			// k页span返回
@@ -49,7 +72,8 @@ Span* PageCache::NewSpan(size_t k)
 
 	// 走到这个位置就说明后面没有大页的span了
 	// 这时就去找堆要一个128页的span
-	Span* bigSpan = new Span;
+	//Span* bigSpan = new Span;
+	Span* bigSpan = _spanPool.New();
 	void* ptr = SystemAlloc(NPAGES - 1);
 	bigSpan->_pageId = (PAGE_ID)ptr >> PAGE_SHIFT;
 	bigSpan->_n = NPAGES - 1;
@@ -62,6 +86,9 @@ Span* PageCache::NewSpan(size_t k)
 Span* PageCache::MapObjectToSpan(void* obj)
 {
 	PAGE_ID id = ((PAGE_ID)obj >> PAGE_SHIFT);
+
+	std::unique_lock<std::mutex> lock(_pageMtx);
+
 	auto ret = _idSpanMap.find(id);
 	if (ret != _idSpanMap.end())
 	{
@@ -76,6 +103,17 @@ Span* PageCache::MapObjectToSpan(void* obj)
 
 void PageCache::ReleaseSpanToPageCache(Span* span)
 {
+	// 大于128 page的直接还给堆
+	if (span->_n > NPAGES-1)
+	{
+		void* ptr = (void*)(span->_pageId << PAGE_SHIFT);
+		SystemFree(ptr);
+		//delete span;
+		_spanPool.Delete(span);
+
+		return;
+	}
+
 	// 对span前后的页，尝试进行合并，缓解内存碎片问题
 	while (1)
 	{
@@ -95,7 +133,7 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 		}
 
 		// 合并出超过128页的span没办法管理，不合并了
-		if (prevSpan->_n + span->_n > NPAGES - 1)
+		if (prevSpan->_n + span->_n > NPAGES-1)
 		{
 			break;
 		}
@@ -104,7 +142,8 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 		span->_n += prevSpan->_n;
 
 		_spanLists[prevSpan->_n].Erase(prevSpan);
-		delete prevSpan;
+		//delete prevSpan;
+		_spanPool.Delete(prevSpan);
 	}
 
 	// 向后合并
@@ -123,7 +162,7 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 			break;
 		}
 
-		if (nextSpan->_n + span->_n > NPAGES - 1)
+		if (nextSpan->_n + span->_n > NPAGES-1)
 		{
 			break;
 		}
@@ -131,12 +170,13 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 		span->_n += nextSpan->_n;
 
 		_spanLists[nextSpan->_n].Erase(nextSpan);
-		delete nextSpan;
+		//delete nextSpan;
+		_spanPool.Delete(nextSpan);
 	}
 
 	_spanLists[span->_n].PushFront(span);
 	span->_isUse = false;
 	_idSpanMap[span->_pageId] = span;
-	_idSpanMap[span->_pageId + span->_n - 1] = span;
+	_idSpanMap[span->_pageId+span->_n-1] = span;
 }
 
