@@ -21,5 +21,15 @@ void* ThreadCache::FetchFromCentralCache(size_t index,size_t size)
 {
 	size_t batchnum = min(_freeLists->MaxSize(), SizeClass::NumMoveSize(size));
 	if (batchnum == _freeLists->MaxSize())_freeLists->MaxSize()++;
-	size_t actualNum = 
+
+	void* start = nullptr, * end = nullptr;
+	size_t actualNum = CentralCache::GetInstance()->FetchRangeObj(start, end, batchnum, size);
+	
+	assert(actualNum > 0);
+	if (actualNum == 1) {
+		assert(start == end);
+		return start;
+	}
+	_freeLists[index].PushRange(NextObj(start), end, actualNum - 1);
+	return start;
 }
