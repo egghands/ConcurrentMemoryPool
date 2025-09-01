@@ -1,11 +1,5 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <time.h>
 #include "Common.h"
-using std::cout;
-using std::endl;
-using std::vector;
 template<class T>
 class ObjectPool
 {
