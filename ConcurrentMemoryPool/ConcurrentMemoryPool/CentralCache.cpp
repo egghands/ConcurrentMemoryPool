@@ -34,7 +34,7 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size)
 
 	// 计算span的大块内存的起始地址和大块内存的大小(字节数)
 	char* start = (char*)(span->_pageId << PAGE_SHIFT);
-	size_t bytes = span->_n << PAGE_SHIFT;
+	size_t bytes = (span->_n << PAGE_SHIFT);
 	char* end = start + bytes;
 
 	// 把大块内存切成自由链表链接起来
