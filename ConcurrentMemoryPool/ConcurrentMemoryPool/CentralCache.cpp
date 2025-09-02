@@ -53,21 +53,6 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t size)
 
 	NextObj(tail) = nullptr;
 
-	// 1、条件断点
-	// 2、疑似死循环，可以中断程序，程序会在正在运行的地方停下来
-	//int j = 0;
-	//void* cur = span->_freeList;
-	//while (cur)
-	//{
-	//	cur = NextObj(cur);
-	//	++j;
-	//}
-
-	//if (j != (bytes / size))
-	//{
-	//	int x = 0;
-	//}
-
 	// 切好span以后，需要把span挂到桶里面去的时候，再加锁
 	list._mtx.lock();
 	list.PushFront(span);
