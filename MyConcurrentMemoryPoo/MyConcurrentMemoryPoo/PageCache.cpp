@@ -123,6 +123,7 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 Span* PageCache::MapObjToSpan(void* obj)
 {
 	assert(obj != nullptr);
+	std::unique_lock<std::mutex>lock(_mtx);
 	PAGE_ID pageId = (PAGE_ID)obj >> PAGE_SHIFT;
 	auto itr = _idSpanMap.find(pageId);
 	if (itr == _idSpanMap.end()) {

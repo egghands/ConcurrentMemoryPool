@@ -45,6 +45,7 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t alignSize)
 	Span* span = PageCache::GetInstance()->NewSpan(SizeClass::NumMovePage(alignSize));
 	assert(span);
 	span->_isUse = true;
+	span->_objSize = alignSize;
 
 	PageCache::GetInstance()->Mtx().unlock();
 	//¶Ôspan½øĞĞÇĞ¸î
