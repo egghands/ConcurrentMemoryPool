@@ -46,6 +46,16 @@ inline static void* SystemAlloc(size_t kpage)
 
 	return ptr;
 }
+//直接在堆上按页释放空间
+inline static void SystemFree(void* ptr) {
+#ifdef _WIN32
+	VirtualFree(ptr, 0, MEM_RELEASE);
+#else
+	//Linux
+#endif // _WIN32
+
+}
+
 
 
 // 计算对象大小的对齐映射规则
@@ -103,8 +113,7 @@ public:
 		}
 		else
 		{
-			assert(false);
-			return -1;
+			return _RoundUp(size, 1 << PAGE_SHIFT);
 		}
 	}
 

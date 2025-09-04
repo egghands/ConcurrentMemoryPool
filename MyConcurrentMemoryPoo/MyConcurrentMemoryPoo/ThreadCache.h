@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.h"
-
+#include "CentralCache.h"
+#include "PageCache.h"
 class ThreadCache
 {
 public:

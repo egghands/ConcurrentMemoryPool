@@ -1,17 +1,32 @@
 #include "ThreadCache.h"
-#include "CentralCache.h"
 
 //-----申请逻辑----//
 void* ThreadCache::Allocate(size_t size)
 {
-	assert(size <= MAX_BYTES);
-	size_t alignSize = SizeClass::RoundUp(size);
-	size_t index = SizeClass::Index(size);
-	if (_freeLists[index].Empty()) {
-		return FetchFromCentralCache(index, alignSize);
+	if (size > MAX_BYTES) {
+		size_t alignSize = SizeClass::RoundUp(size);
+		size_t kpage = alignSize >> PAGE_SHIFT;
+		
+		PageCache::GetInstance()->Mtx().lock();
+		
+		Span* bigSpan = PageCache::GetInstance()->NewSpan(kpage);
+		assert(bigSpan);
+		bigSpan->_isUse = true;
+
+		PageCache::GetInstance()->Mtx().unlock();
+		void* p = (void*)(bigSpan->_pageId << PAGE_SHIFT);
+		return p;
 	}
-	else {
-		return _freeLists[index].Pop();
+	else{
+
+		size_t alignSize = SizeClass::RoundUp(size);
+		size_t index = SizeClass::Index(size);
+		if (_freeLists[index].Empty()) {
+			return FetchFromCentralCache(index, alignSize);
+		}
+		else {
+			return _freeLists[index].Pop();
+		}
 	}
 }
 
@@ -41,13 +56,23 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t alignSize)
 //-----释放逻辑----//
 void ThreadCache::Deallcate(void* ptr, size_t size)
 {
-	assert(size <= MAX_BYTES);
-	assert(ptr);
-	//找出对应的桶然后头插入自由链表
-	size_t index = SizeClass::Index(size);
-	_freeLists[index].Push(ptr);
-	if (_freeLists[index].Size() >= _freeLists[index].MaxSize()) {
-		ListTooLong(_freeLists[index], size);
+	if (size > MAX_BYTES) {
+		Span* bigSpan = PageCache::GetInstance()->MapObjToSpan(ptr);
+		PageCache::GetInstance()->Mtx().lock();
+		
+		PageCache::GetInstance()->ReleaseSpanToPageCache(bigSpan);
+
+		PageCache::GetInstance()->Mtx().unlock();
+	}
+	else{
+		assert(size <= MAX_BYTES);
+		assert(ptr);
+		//找出对应的桶然后头插入自由链表
+		size_t index = SizeClass::Index(size);
+		_freeLists[index].Push(ptr);
+		if (_freeLists[index].Size() >= _freeLists[index].MaxSize()) {
+			ListTooLong(_freeLists[index], size);
+		}
 	}
 }
 

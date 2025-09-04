@@ -102,11 +102,33 @@ void TestAlloc1() {
 }
 
 
+void TestDealloc(size_t n,size_t size) {
+	vector<void*>v(n);
+	for (size_t i = 0; i < n; i++)
+	{
+		void* p = ConcurrentAlloc(size);
+		v[i] = p;
+	}
+
+	for (size_t i = 0; i < n; i++) {
+		ConcurrentFree(v[i], size);
+	}
+}
+
+void BigAlloc() {
+	void* p1 = ConcurrentAlloc(257 * 1024);
+	ConcurrentFree(p1, 257 * 1024);
+
+	void* p2 = ConcurrentAlloc(129 * 1024 * 8);
+	ConcurrentFree(p2, 129 * 1024 * 8);
+}
+
 int main() {
 	//TestObjectPool();
 	//TestConAlloc();
-	TestAlloc();
+	//TestAlloc();
 	//TestAlloc1();
 	//Alloc1(6);
-
+	//TestDealloc(2,6);
+	BigAlloc();
 }
