@@ -177,12 +177,12 @@ void BigAlloc() {
 	ConcurrentFree(p2);
 }
 
-int main() {
-	//TestObjectPool();
-	//TestConAlloc();
-	//TestAlloc();
-	//TestAlloc1();
-	//Alloc1(6);
-	//TestDealloc(2,6);
-	BigAlloc();
-}
+//int main() {
+//	//TestObjectPool();
+//	//TestConAlloc();
+//	//TestAlloc();
+//	//TestAlloc1();
+//	//Alloc1(6);
+//	//TestDealloc(2,6);
+//	BigAlloc();
+//}
