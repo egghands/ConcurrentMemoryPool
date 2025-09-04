@@ -10,7 +10,12 @@ Span* PageCache::NewSpan(size_t npage)
 	assert(npage > 0 && npage < NPAGES);
 	SpanList& spanList = _spanLists[npage];
 	if (!spanList.Empty())
-		return spanList.PopFront();
+	{
+		Span* span =  spanList.PopFront();
+		for (int i = 0; i < span->_n; i++)
+			_idSpanMap[span->_pageId + i] = span;
+		return span;
+	}
 	//当前spanlist中没有对应大小的span，像更大的list寻找，然后切割
 	for (size_t i = npage + 1; i < NPAGES; i++) {
 		if (!_spanLists[i].Empty())
@@ -26,10 +31,9 @@ Span* PageCache::NewSpan(size_t npage)
 			for (size_t i = 0; i < aSpan->_n; i++) {
 				_idSpanMap[aSpan->_pageId + i] = aSpan;
 			}
-
-			for (size_t i = 0; i < bSpan->_n; i++) {
-				_idSpanMap[bSpan->_pageId + i] = bSpan;
-			}
+				
+			_idSpanMap[bSpan->_pageId] = bSpan;
+			_idSpanMap[bSpan->_pageId + bSpan->_n - 1] = bSpan;
 
 			return aSpan;
 		}
@@ -47,6 +51,47 @@ Span* PageCache::NewSpan(size_t npage)
 //------释放逻辑------//
 void PageCache::ReleaseSpanToPageCache(Span* span)
 {
+	//对前后相邻span尝试进行合并，有三种情况停止合并
+	while (1) {
+		auto iter = _idSpanMap.find(span->_pageId + 1);
+		if (iter == _idSpanMap.end())
+			break;
+		Span* preSpan = iter->second;
+		if (preSpan->_isUse == true)
+			break;
+		if (preSpan->_n + span->_n > NPAGES)
+			break;
+		//完成合并
+		span->_n += preSpan->_n;
+		span->_pageId = preSpan->_pageId;
+
+		_idSpanMap.erase(iter);
+		_spanLists[preSpan->_n].Erase(preSpan);
+		delete preSpan;
+	}
+
+	while (1) {
+		auto iter = _idSpanMap.find(span->_pageId + span->_n  - 1);
+		if (iter == _idSpanMap.end())
+			break;
+		Span* nextSpan = iter->second;
+		if (nextSpan->_isUse == true)
+			break;
+		if (nextSpan->_n + span->_n > NPAGES - 1)
+			break;
+		//完成合并
+		span->_n += nextSpan->_n;
+
+		_idSpanMap.erase(iter);
+		_spanLists[nextSpan->_n].Erase(nextSpan);
+		delete nextSpan;
+	}
+
+
+	_spanLists[span->_n].PushFront(span);
+	span->_isUse = false;
+	_idSpanMap[span->_pageId] = span;
+	_idSpanMap[span->_pageId + span->_n - 1] = span;
 
 }
 

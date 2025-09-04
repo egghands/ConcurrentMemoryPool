@@ -37,8 +37,8 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t alignSize)
 	return start;
 }
 
-//-----ÊÍ·ÅÂß¼­----//
 
+//-----ÊÍ·ÅÂß¼­----//
 void ThreadCache::Deallcate(void* ptr, size_t size)
 {
 	assert(size <= MAX_BYTES);

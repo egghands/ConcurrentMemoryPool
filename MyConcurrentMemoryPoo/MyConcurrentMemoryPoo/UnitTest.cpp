@@ -16,12 +16,12 @@ void Alloc1(size_t size) {
 
 void Alloc2(size_t size) {
 	std::vector<void*>v;
-	for (size_t i = 0; i < 2; i++) {
+	for (size_t i = 0; i < 5; i++) {
 		void* ptr = ConcurrentAlloc(size);
 		cout << std::this_thread::get_id() << ":" << ptr << endl;
 		v.push_back(ptr);
 	}
-	for (size_t i = 0; i < 2; i++) {
+	for (size_t i = 0; i < 5; i++) {
 		ConcurrentFree(v[i], size);
 	}
 	void* p1 = ConcurrentAlloc(259);
@@ -29,19 +29,21 @@ void Alloc2(size_t size) {
 												 
 	void* p2 = ConcurrentAlloc(256);			 
 	cout << std::this_thread::get_id() << ":" << p2 << endl;
+
 	void* p3 = ConcurrentAlloc(256);			 
 	cout << std::this_thread::get_id() << ":" << p3 << endl;
 								
-	ConcurrentFree(p1, 256);
-	ConcurrentFree(p2, 256);
-	ConcurrentFree(p2, 256);
-
 	void* p4 = ConcurrentAlloc(256);			 
 	cout << std::this_thread::get_id() << ":" << p4 << endl;
 
 	void* p5 = ConcurrentAlloc(256);
 	cout << std::this_thread::get_id() << ":" << p5 << endl;
-
+	
+	ConcurrentFree(p1, 256);
+	ConcurrentFree(p2, 256);
+	ConcurrentFree(p3, 256);
+	ConcurrentFree(p4, 256);
+	ConcurrentFree(p5, 256);
 }
 
 void Alloc3(size_t size) {
@@ -83,6 +85,11 @@ void TestAlloc() {
 	cout << p4 << endl;
 	cout << p5 << endl;
 
+	ConcurrentFree(p1, 6);
+	ConcurrentFree(p2, 8);
+	ConcurrentFree(p3, 1);
+	ConcurrentFree(p4, 7);
+	ConcurrentFree(p5, 8);
 }
 
 void TestAlloc1() {
@@ -97,8 +104,9 @@ void TestAlloc1() {
 
 int main() {
 	//TestObjectPool();
-	TestConAlloc();
+	//TestConAlloc();
 	TestAlloc();
-	TestAlloc1();
+	//TestAlloc1();
+	//Alloc1(6);
 
 }

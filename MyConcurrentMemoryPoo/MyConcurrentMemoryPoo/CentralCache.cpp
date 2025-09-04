@@ -11,6 +11,7 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	_spanLists[index].Mtx().lock();//操作桶锁
 
 	Span* newSpan = GetOneSpan(_spanLists[index], alignSize);
+
 	assert(newSpan);
 	assert(newSpan->_freeList);
 
@@ -43,6 +44,7 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t alignSize)
 
 	Span* span = PageCache::GetInstance()->NewSpan(SizeClass::NumMovePage(alignSize));
 	assert(span);
+	span->_isUse = true;
 
 	PageCache::GetInstance()->Mtx().unlock();
 	//对span进行切割
@@ -65,7 +67,6 @@ Span* CentralCache::GetOneSpan(SpanList& list, size_t alignSize)
 	return span;
 }
 
-//-------------ToDo 未考虑加锁---------------
 void CentralCache::ReleaseListToSpans(void* start, size_t byte_size)
 {
 	size_t index = SizeClass::Index(byte_size);
