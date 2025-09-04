@@ -19,8 +19,8 @@ void BenchmarkMalloc(size_t ntimes, size_t nworks, size_t rounds)
 				size_t begin1 = clock();
 				for (size_t i = 0; i < ntimes; i++)
 				{
-					//v.push_back(malloc(16));
-					v.push_back(malloc((16 + i) % 8192 + 1));
+					v.push_back(malloc(16));
+					//v.push_back(malloc((16 + i) % 8192 + 1));
 				}
 				size_t end1 = clock();
 
@@ -80,8 +80,8 @@ void BenchmarkConcurrentMalloc(size_t ntimes, size_t nworks, size_t rounds)
 				size_t begin1 = clock();
 				for (size_t i = 0; i < ntimes; i++)
 				{
-					//v.push_back(ConcurrentAlloc(16));
-					v.push_back(ConcurrentAlloc((16 + i) % 8192 + 1));
+					v.push_back(ConcurrentAlloc(16));
+					//v.push_back(ConcurrentAlloc((16 + i) % 8192 + 1));
 				}
 				size_t end1 = clock();
 
@@ -103,22 +103,22 @@ void BenchmarkConcurrentMalloc(size_t ntimes, size_t nworks, size_t rounds)
 	{
 		t.join();
 	}
-	std::cout << nworks << "个线程并发执行" << rounds
-		<< "轮次，每轮次concurrent alloc " << ntimes
-		<< "次: 花费：" << malloc_costtime.load(std::memory_order_relaxed) << " ms" << std::endl;
+	std::cout << nworks << "个线程并发执行" << rounds 
+          << "轮次，每轮次concurrent alloc " << ntimes 
+          << "次: 花费：" << malloc_costtime.load(std::memory_order_relaxed) << " ms" << std::endl;
 
-	// 输出并发释放统计
-	std::cout << nworks << "个线程并发执行" << rounds
-		<< "轮次，每轮次concurrent dealloc " << ntimes
-		<< "次: 花费：" << free_costtime.load(std::memory_order_relaxed) << " ms" << std::endl;
+// 输出并发释放统计
+std::cout << nworks << "个线程并发执行" << rounds 
+          << "轮次，每轮次concurrent dealloc " << ntimes 
+          << "次: 花费：" << free_costtime.load(std::memory_order_relaxed) << " ms" << std::endl;
 
-	// 输出总统计
-	std::cout << nworks << "个线程并发concurrent alloc&dealloc "
-		<< nworks * rounds * ntimes
-		<< "次，总计花费："
-		<< (malloc_costtime.load(std::memory_order_relaxed) + free_costtime.load(std::memory_order_relaxed))
-		<< " ms" << std::endl;
-
+// 输出总统计
+std::cout << nworks << "个线程并发concurrent alloc&dealloc " 
+          << nworks * rounds * ntimes 
+          << "次，总计花费：" 
+          << (malloc_costtime.load(std::memory_order_relaxed) + free_costtime.load(std::memory_order_relaxed)) 
+          << " ms" << std::endl;
+    
 
 }
 

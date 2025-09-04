@@ -58,12 +58,12 @@ void TestObjectPool() {
 }
 void Alloc1(size_t size) {
 	std::vector<void*>v;
-	for (size_t i = 0; i < 2; i++) {
+	for (size_t i = 0; i < 10000; i++) {
 		void* ptr = ConcurrentAlloc(size);
-		cout << std::this_thread::get_id() << ":" << ptr << endl;
+		//cout << std::this_thread::get_id() << ":" << ptr << endl;
 		v.push_back(ptr);
 	}
-	for (size_t i = 0; i < 2; i++) {
+	for (size_t i = 0; i < 10000; i++) {
 		ConcurrentFree(v[i]);
 	}
 }
@@ -182,7 +182,7 @@ void BigAlloc() {
 //	//TestConAlloc();
 //	//TestAlloc();
 //	//TestAlloc1();
-//	//Alloc1(6);
+//	Alloc1(16);
 //	//TestDealloc(2,6);
-//	BigAlloc();
+//	//BigAlloc();
 //}

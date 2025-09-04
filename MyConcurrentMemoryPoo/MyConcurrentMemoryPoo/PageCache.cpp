@@ -23,7 +23,7 @@ Span* PageCache::NewSpan(size_t npage)
 	if (!spanList.Empty())
 	{
 		Span* span =  spanList.PopFront();
-		for (int i = 0; i < span->_n; i++)
+		for (PAGE_ID i = 0; i < span->_n; i++)
 			_idSpanMap[span->_pageId + i] = span;
 		return span;
 	}
@@ -41,7 +41,7 @@ Span* PageCache::NewSpan(size_t npage)
 			bSpan->_pageId = aSpan->_pageId + npage;
 			_spanLists[bSpan->_n].PushFront(bSpan);
 
-			for (size_t i = 0; i < aSpan->_n; i++) {
+			for (PAGE_ID i = 0; i < aSpan->_n; i++) {
 				_idSpanMap[aSpan->_pageId + i] = aSpan;
 			}
 				
@@ -75,7 +75,7 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 
 		//对前后相邻span尝试进行合并，有三种情况停止合并
 		while (1) {
-			auto iter = _idSpanMap.find(span->_pageId + 1);
+			auto iter = _idSpanMap.find(span->_pageId - 1);
 			if (iter == _idSpanMap.end())
 				break;
 			Span* preSpan = iter->second;
@@ -123,7 +123,7 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 Span* PageCache::MapObjToSpan(void* obj)
 {
 	assert(obj != nullptr);
-	std::unique_lock<std::mutex>lock(_mtx);
+	std::unique_lock<std::mutex>lock(_pageMtx);
 	PAGE_ID pageId = (PAGE_ID)obj >> PAGE_SHIFT;
 	auto itr = _idSpanMap.find(pageId);
 	if (itr == _idSpanMap.end()) {
