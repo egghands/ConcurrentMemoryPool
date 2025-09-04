@@ -3,7 +3,7 @@
 #include "ObjectPool.h"
 #include "CentralCache.h"
 #include <unordered_map>
-#include <map>
+
 class PageCache
 {
 public:
@@ -16,8 +16,7 @@ private:
 	SpanList _spanLists[NPAGES];
 	static PageCache _sInst;
 	std::mutex _pageMtx;
-	//---------TODO将_idSpanMap改回来---------//
-	std::map<PAGE_ID, Span*>_idSpanMap;				//方便回收小块内存
+	std::unordered_map<PAGE_ID, Span*>_idSpanMap;				//方便回收小块内存
 	ObjectPool<Span>_spanPool;
 
 	PageCache() {};

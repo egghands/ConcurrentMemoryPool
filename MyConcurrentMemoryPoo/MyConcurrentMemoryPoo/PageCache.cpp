@@ -81,7 +81,7 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 			Span* preSpan = iter->second;
 			if (preSpan->_isUse == true)
 				break;
-			if (preSpan->_n + span->_n > NPAGES)
+			if (preSpan->_n + span->_n > NPAGES - 1)
 				break;
 			//完成合并
 			span->_n += preSpan->_n;
