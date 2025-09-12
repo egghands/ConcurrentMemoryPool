@@ -14,6 +14,11 @@ private:
 
 };
 
+#ifdef _WIN32
 static _declspec (thread) ThreadCache* pTLSThreadCache = nullptr;
+#elif __linux__
+static thread_local ThreadCache* pTLSThreadCache = nullptr;
+#endif // 
+
 
    

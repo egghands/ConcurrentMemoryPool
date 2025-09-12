@@ -17,8 +17,11 @@ void* ThreadCache::Allocate(size_t size)
 void* ThreadCache::FetchFromCentralCache(size_t index, size_t alignSize)
 {
 	//慢增长算法，控制申请对象的个数
+	#ifdef _WIN32 
 	size_t batchNum = min(_freeLists[index].MaxSize(), SizeClass::NumMoveSize(alignSize));
-	
+	#elif __linux__
+	size_t batchNum = std::min(_freeLists[index].MaxSize(), SizeClass::NumMoveSize(alignSize));
+	#endif
 	if (batchNum == _freeLists[index].MaxSize())
 		_freeLists[index].MaxSize() += 1;
 	void* start = nullptr;

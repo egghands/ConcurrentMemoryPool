@@ -32,9 +32,11 @@ static const size_t PAGE_SHIFT = 13;
 	typedef unsigned long long PAGE_ID;
 #elif __i386__
 	typedef size_t PAGE_ID;
+	
 #endif // 0
 
 
+struct Span;
 // 直接去堆上按页申请空间
 inline static void* SystemAlloc(size_t kpage)
 {
@@ -50,11 +52,11 @@ inline static void* SystemAlloc(size_t kpage)
 	return ptr;
 }
 //直接在堆上按页释放空间
-inline static void SystemFree(void* ptr) {
+inline static void SystemFree(void* ptr, size_t length) {
 #ifdef _WIN32
 	VirtualFree(ptr, 0, MEM_RELEASE);
 #else
-	munmap(ptr, (Span*)ptr->_n << PAGE_SHIFT);//Linux
+	munmap(ptr, length);//Linux
 #endif // _WIN32
 
 }
