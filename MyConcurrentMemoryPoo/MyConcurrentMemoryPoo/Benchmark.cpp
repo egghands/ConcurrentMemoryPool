@@ -126,10 +126,10 @@ int main()
 {
 	size_t n = 10000;
 	cout << "==========================================================" << endl;
-	BenchmarkConcurrentMalloc(n, 16, 10);
+	BenchmarkConcurrentMalloc(n, 4, 10);
 	cout << endl << endl;
 
-	BenchmarkMalloc(n, 16, 10);
+	BenchmarkMalloc(n, 4, 10);
 	cout << "==========================================================" << endl;
 
 	return 0;

@@ -19,16 +19,19 @@ static const size_t PAGE_SHIFT = 13;
 
 #ifdef  _WIN32
 	#include <windows.h>
-#else //Linux
-#endif //  _WIN64
+#else
+	#include <sys/mman.h>//linux
+#endif 
 
 
 #ifdef _WIN64
 	typedef unsigned long long PAGE_ID;
 #elif _WIN32
 	typedef size_t PAGE_ID;
-#else
-	//linux
+#elif __x86_64__
+	typedef unsigned long long PAGE_ID;
+#elif __i386__
+	typedef size_t PAGE_ID;
 #endif // 0
 
 
@@ -37,8 +40,8 @@ inline static void* SystemAlloc(size_t kpage)
 {
 #ifdef _WIN32
 	void* ptr = VirtualAlloc(0, kpage << PAGE_SHIFT, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-#else
-	// linux下brk mmap等
+#else// linux下brk mmap等
+	void* ptr = mmap(NULL, kpage << PAGE_SHIFT, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #endif
 
 	if (ptr == nullptr)
@@ -51,7 +54,7 @@ inline static void SystemFree(void* ptr) {
 #ifdef _WIN32
 	VirtualFree(ptr, 0, MEM_RELEASE);
 #else
-	//Linux
+	munmap(ptr, (Span*)ptr->_n << PAGE_SHIFT);//Linux
 #endif // _WIN32
 
 }
