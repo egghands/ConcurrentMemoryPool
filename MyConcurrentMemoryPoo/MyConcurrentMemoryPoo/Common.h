@@ -7,6 +7,10 @@
 #include <mutex>
 #include <assert.h>
 #include <thread>
+#ifdef __linux__
+#include <pthraed.h>
+#endif // __linux__
+
 using std::cout;
 using std::endl;
 using std::vector;
@@ -36,7 +40,6 @@ static const size_t PAGE_SHIFT = 13;
 #endif // 0
 
 
-struct Span;
 // 直接去堆上按页申请空间
 inline static void* SystemAlloc(size_t kpage)
 {
