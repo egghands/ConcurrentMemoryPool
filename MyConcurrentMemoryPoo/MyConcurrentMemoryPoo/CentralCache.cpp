@@ -91,7 +91,7 @@ void CentralCache::ReleaseListToSpans(void* start, size_t byte_size)
 			spanList.Mtx().unlock();
 			PageCache::GetInstance()->Mtx().lock();
 
-			PageCache::GetInstance()->ReleaseSpanToPageCache(span);
+			PageCache::GetInstance()->ReleaseSpanToPageCache	(span);
 
 			PageCache::GetInstance()->Mtx().unlock();
 			spanList.Mtx().lock();
